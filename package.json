@@ -1,0 +1,21 @@
+{
+  "name": "ai-roleplays-sales-call-coach",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Malintha-101/AI-roleplays-sales-call-coach.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Malintha-101/AI-roleplays-sales-call-coach/issues"
+  },
+  "homepage": "https://github.com/Malintha-101/AI-roleplays-sales-call-coach#readme",
+  "description": ""
+}
