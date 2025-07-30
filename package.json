@@ -2,7 +2,6 @@
   "name": "ai-roleplays-sales-call-coach",
   "version": "1.0.0",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,5 +16,9 @@
     "url": "https://github.com/Malintha-101/AI-roleplays-sales-call-coach/issues"
   },
   "homepage": "https://github.com/Malintha-101/AI-roleplays-sales-call-coach#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "openai": "^5.10.2"
+  }
 }
