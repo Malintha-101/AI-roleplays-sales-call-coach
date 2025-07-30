@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "start": "node src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,7 +19,12 @@
   "homepage": "https://github.com/Malintha-101/AI-roleplays-sales-call-coach#readme",
   "description": "",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^17.2.1",
-    "openai": "^5.10.2"
-  }
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^5.10.2",
+    "pdf-parse": "^1.1.1"
+  },
+  "proxy": "http://localhost:5000"
 }
