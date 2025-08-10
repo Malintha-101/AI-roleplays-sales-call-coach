@@ -1,72 +1,125 @@
-
 require('dotenv').config();
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const pdfParse = require('pdf-parse');
-const instructionService = require('./services/instructionService');
-const aiReplyService = require('./services/aiReplyService');
-
+const cors = require('cors');
+const conversationService = require('./services/conversationService');
+const sessionService = require('./services/sessionService');
 const app = express();
-const upload = multer({ dest: 'uploads/' });
 
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 1. Upload PDF endpoint
-app.post('/instructions/upload', upload.single('pdf'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-    }
-    // Optionally, move/rename file or store path in DB
-    res.json({ message: 'File uploaded', filename: req.file.filename });
-});
-
-// 2. Extract text from PDF endpoint
-app.get('/instructions/extract', async (req, res) => {
-    const { filename } = req.query;
-    if (!filename) {
-        return res.status(400).json({ error: 'Filename required' });
-    }
-    const filePath = path.join(__dirname, '../uploads', filename);
-    console.log('Extract endpoint called. Looking for file:', filePath);
-    if (!fs.existsSync(filePath)) {
-        console.error('File not found:', filePath);
-        return res.status(404).json({ error: 'File not found' });
-    }
+// Process initial text input (simple AI response)
+app.post('/api/process-text', async (req, res) => {
+    const { text } = req.body;
+    
     try {
-        const dataBuffer = fs.readFileSync(filePath);
-        const data = await pdfParse(dataBuffer);
-        res.json({ text: data.text });
+        const result = await conversationService.processInitialText(text);
+        res.json({ 
+            success: true, 
+            data: result 
+        });
     } catch (err) {
-        console.error('Error extracting text from PDF:', err);
-        res.status(500).json({ error: 'Failed to extract text', details: err.message });
+        res.status(400).json({ 
+            success: false, 
+            error: err.message 
+        });
     }
 });
 
-// 3. Send extracted text to OpenAI endpoint
+// Start a new conversation session
+app.post('/api/conversations', async (req, res) => {
+    const { initialText } = req.body;
+    
+    try {
+        const result = await conversationService.startConversation(initialText);
+        res.json({ 
+            success: true, 
+            data: result 
+        });
+    } catch (err) {
+        res.status(400).json({ 
+            success: false, 
+            error: err.message 
+        });
+    }
+});
+
+// Send message in existing conversation
+app.post('/api/conversations/:sessionId/messages', async (req, res) => {
+    const { sessionId } = req.params;
+    const { message } = req.body;
+    
+    try {
+        const result = await conversationService.processMessage(sessionId, message);
+        res.json({ 
+            success: true, 
+            data: result 
+        });
+    } catch (err) {
+        const statusCode = err.message.includes('Session not found') ? 404 : 400;
+        res.status(statusCode).json({ 
+            success: false, 
+            error: err.message 
+        });
+    }
+});
+
+// Get conversation history
+app.get('/api/conversations/:sessionId', async (req, res) => {
+    const { sessionId } = req.params;
+    
+    try {
+        const conversation = await sessionService.getConversation(sessionId);
+        res.json({ 
+            success: true, 
+            data: { conversation } 
+        });
+    } catch (err) {
+        res.status(404).json({ 
+            success: false, 
+            error: err.message 
+        });
+    }
+});
+
+// End conversation session
+app.delete('/api/conversations/:sessionId', async (req, res) => {
+    const { sessionId } = req.params;
+    
+    try {
+        const result = sessionService.endSession(sessionId);
+        res.json({ 
+            success: true, 
+            data: result 
+        });
+    } catch (err) {
+        res.status(404).json({ 
+            success: false, 
+            error: err.message 
+        });
+    }
+});
+
+// Legacy endpoint for backward compatibility
 app.post('/instructions/openai', async (req, res) => {
     const { text } = req.body;
     if (!text) {
         return res.status(400).json({ error: 'Text required' });
     }
     try {
-        // Accept either a string or an array of messages
-        let messages;
         if (Array.isArray(text)) {
-            messages = text;
+            // This is a conversation array - redirect to new API
+            return res.status(400).json({ 
+                error: 'Please use the new conversation API endpoints',
+                suggestion: 'Use POST /api/conversations to start and POST /api/conversations/:sessionId/messages to continue'
+            });
         } else {
-            messages = [
-                { role: 'system', content: 'These are the instructions for the AI.' },
-                { role: 'user', content: text }
-            ];
+            // Simple text processing
+            const result = await conversationService.processInitialText(text);
+            res.json({ aiResponse: { text: result.aiResponse } });
         }
-        console.log('Calling aiReplyService.getAIReply with:', messages);
-        const aiResponse = await aiReplyService.getAIReply(messages);
-        res.json({ aiResponse });
     } catch (err) {
-        console.error('Error in /instructions/openai:', err);
         res.status(500).json({ error: 'OpenAI request failed', details: err.message });
     }
 });
